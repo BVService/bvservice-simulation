@@ -1,0 +1,41 @@
+<?xml version="1.0" standalone="yes"?>
+<openfluid>
+ <monitoring>
+  <observer ID="export.vars.files.csv" enabled="0">
+   <param name="format.auto.colsep" value=";"/>
+   <param name="format.auto.date" value="ISO"/>
+   <param name="format.auto.header" value="colnames-as-comment"/>
+   <param name="set.autoLI.format" value="auto"/>
+   <param name="set.autoLI.unitsIDs" value="*"/>
+   <param name="set.autoLI.unitsclass" value="LI"/>
+   <param name="set.autoLI.vars" value="*"/>
+   <param name="set.autoRS.format" value="auto"/>
+   <param name="set.autoRS.unitsIDs" value="*"/>
+   <param name="set.autoRS.unitsclass" value="RS"/>
+   <param name="set.autoRS.vars" value="*"/>
+   <param name="set.autoSU.format" value="auto"/>
+   <param name="set.autoSU.unitsIDs" value="*"/>
+   <param name="set.autoSU.unitsclass" value="SU"/>
+   <param name="set.autoSU.vars" value="*"/>
+  </observer>
+  <observer ID="export.spatial-graph.files.dot" enabled="1">
+   <param name="show.attributes" value="1"/>
+   <param name="show.pcsord" value="1"/>
+   <param name="show.variables" value="0"/>
+   <param name="style.LI.fillcolor" value="lawngreen"/>
+   <param name="style.LI.shape" value="rectangle"/>
+   <param name="style.LI.style" value="filled"/>
+   <param name="style.RS.fillcolor" value="lightblue"/>
+   <param name="style.RS.shape" value="invtrapezium"/>
+   <param name="style.RS.style" value="filled"/>
+   <param name="style.SU.fillcolor" value="burlywood"/>
+   <param name="style.SU.style" value="filled"/>
+   <param name="when.final" value="1"/>
+  </observer>
+  <observer ID="export.results.bvservice" enabled="1">
+  </observer>
+ </monitoring>
+
+
+</openfluid>
+
