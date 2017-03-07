@@ -228,7 +228,7 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
 
       double CurrentRunoff = RunoffVolumeToFilter / EfficientArea;
 
-      std::cout << U->getID() << " : CurrentRunoff-in = " << CurrentRunoff << std::endl;
+      //std::cout << U->getID() << " : CurrentRunoff-in = " << CurrentRunoff << std::endl;
 
       if (CurrentRunoff > 0)
       {
@@ -240,7 +240,7 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
           if (Ratio > 0.01)
           {
             CurrentRunoff = computeRunoff(CurrentRunoff,computeS(m_CNbyLIType.at(LinearPart)));
-            std::cout << U->getID() << " : CurrentRunoff-" << LinearPart << " = " << CurrentRunoff << std::endl;
+            //std::cout << U->getID() << " : CurrentRunoff-" << LinearPart << " = " << CurrentRunoff << std::endl;
           }
         }
       }
@@ -407,7 +407,7 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
           double RunoffVolume = computeRunoffVolumeOnLI(U,UpstreamRunoffVolume);
           double InfiltVolume = UpstreamRunoffVolume - RunoffVolume;
 
-          std::cout << U->getID() << " : " << UpstreamRunoffVolume << "(invol) = " << RunoffVolume << "(runoffvol) + " << InfiltVolume << "(infiltvol)" << std::endl;
+          //std::cout << U->getID() << " : " << UpstreamRunoffVolume << "(invol) = " << RunoffVolume << "(runoffvol) + " << InfiltVolume << "(infiltvol)" << std::endl;
 
           OPENFLUID_AppendVariable(U,"runoffvolume",RunoffVolume);
           OPENFLUID_AppendVariable(U,"infiltvolume",InfiltVolume);

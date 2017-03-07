@@ -217,6 +217,8 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
 
     void importLayer(const std::string& UnitsClass, const std::string& Shapefile, const std::vector<AttrImportInfo>& AttrInfos)
     {
+      std::cout << "Importing file : " << Shapefile << std::endl;
+
       OGRDataSource* Source = OGRSFDriverRegistrar::Open(Shapefile.c_str(),false);
 
       if (Source)
