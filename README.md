@@ -5,14 +5,14 @@ OpenFLUID simulators and observers for BVservice simulations
 
 #Building from sources
 
-##Requirements
+## Requirements
 
 The following tools and frameworks are required:
 - GCC 4.9 or higher
 - CMake 2.8.12 or higher
 - OpenFLUID 2.1.3 or higher
 
-##Building and testing
+## Building and testing
 
 To build from sources, execute the following commands in the source tree using a terminal
 ```
