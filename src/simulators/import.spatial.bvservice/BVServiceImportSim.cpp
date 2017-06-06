@@ -225,11 +225,15 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
       {
         OGRLayer* Layer = Source->GetLayer(0);
 
-        int IDFldIdx = Layer->FindFieldIndex("ID",true);
+        // OGRLayer::FindFieldIndex() is not available in GDAL <= 1.10
+        // int IDFldIdx = Layer->FindFieldIndex("ID",true)
+        int IDFldIdx = Layer->GetLayerDefn()->GetFieldIndex("ID");
         if (IDFldIdx  < 0)
           OPENFLUID_RaiseError("Cannot find ID attribute in "+UnitsClass+" shapefile");
 
-        int IDToFldIdx = Layer->FindFieldIndex("IDTo",true);
+        // OGRLayer::FindFieldIndex() is not available in GDAL <= 1.10
+        // int IDToFldIdx = Layer->FindFieldIndex("IDTo",true);
+        int IDToFldIdx = Layer->GetLayerDefn()->GetFieldIndex("IDTo");
         if (IDToFldIdx  < 0)
           OPENFLUID_RaiseError("Cannot find IDTo attribute in "+UnitsClass+" shapefile");
 
@@ -238,7 +242,9 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
 
         for (auto& Info : AttrInfos)
         {
-          int AttrFldIdx = Layer->FindFieldIndex(Info.FieldName.c_str(),true);
+          // OGRLayer::FindFieldIndex() is not available in GDAL <= 1.10
+          // int AttrFldIdx = Layer->FindFieldIndex(Info.FieldName.c_str(),true);
+          int AttrFldIdx = Layer->GetLayerDefn()->GetFieldIndex(Info.FieldName.c_str());
 
           if (AttrFldIdx < 0)
             OPENFLUID_RaiseError("Cannot find "+Info.FieldName+" attribute in "+UnitsClass+" shapefile");
