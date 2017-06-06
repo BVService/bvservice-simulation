@@ -30,6 +30,7 @@ BEGIN_SIMULATOR_SIGNATURE("land.indicators.bvservice")
   DECLARE_STATUS(openfluid::ware::EXPERIMENTAL)
 
   DECLARE_REQUIRED_ATTRIBUTE("area","SU","","m")
+  DECLARE_REQUIRED_ATTRIBUTE("slopemean","SU","","m")
   DECLARE_REQUIRED_ATTRIBUTE("length","LI","","m")
   DECLARE_REQUIRED_ATTRIBUTE("grassbsratio","LI","","m")
   DECLARE_REQUIRED_ATTRIBUTE("hedgesratio","LI","","m")
@@ -475,6 +476,7 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
       {
         double UpRunoffVol = OPENFLUID_GetVariable(U,"uprunoffvolume")->asDoubleValue().get();
         double RunoffVol = OPENFLUID_GetVariable(U,"runoffvolume")->asDoubleValue().get();
+        double Slope = OPENFLUID_GetAttribute(U,"slopemean")->asDoubleValue().get();
 
         double DeltaVolume = RunoffVol - UpRunoffVol;
 
@@ -488,6 +490,7 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
 
         OPENFLUID_AppendVariable(U,"runoffvoldelta",DeltaVolume);
         OPENFLUID_AppendVariable(U,"runoffvolratio",RatioVolume);
+        OPENFLUID_AppendVariable(U,"erosionrisk",RunoffVol*Slope);
       }
 
 
@@ -554,7 +557,6 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
 
         OPENFLUID_AppendVariable(U,"infiltvolratiodown",SUNegRatioSum+LIRatioSum);
         OPENFLUID_AppendVariable(U,"conndegree",1.0-SUNegRatioSum+LIRatioSum);
-
       }
 
 
