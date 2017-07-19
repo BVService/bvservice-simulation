@@ -1,0 +1,20 @@
+<?xml version="1.0" standalone="yes"?>
+<openfluid>
+ <model>
+  <simulator ID="import.spatial.bvservice" enabled="1">
+   <param name="LIshapefile" value="${dir.output}/gisdata-release/vector/LI.shp"/>
+   <param name="RSshapefile" value="${dir.output}/gisdata-release/vector/RS.shp"/>
+   <param name="SUshapefile" value="${dir.output}/gisdata-release/vector/SU.shp"/>
+   <param name="forceRSconnect" value="1"/>
+  </simulator>
+  <simulator ID="water.surf-uz.runoff-infiltration.bvservice" enabled="1">
+   <param name="LIinfiltcoeff" value="0.3"/>
+   <param name="SUinfiltcoeff" value="0.3"/>
+   <param name="totalrain" value="0.02"/>
+  </simulator>
+  <simulator ID="land.indicators.bvservice" enabled="1">
+  </simulator>
+ </model>
+
+
+</openfluid>

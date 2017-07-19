@@ -19,9 +19,9 @@
    <param name="set.autoSU.vars" value="*"/>
   </observer>
   <observer ID="export.spatial-graph.files.dot" enabled="1">
-   <param name="show.attributes" value="1"/>
+   <param name="show.attributes" value="0"/>
    <param name="show.pcsord" value="1"/>
-   <param name="show.variables" value="1"/>
+   <param name="show.variables" value="0"/>
    <param name="style.LI.fillcolor" value="lawngreen"/>
    <param name="style.LI.shape" value="rectangle"/>
    <param name="style.LI.style" value="filled"/>

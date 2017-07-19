@@ -11,6 +11,8 @@
 
 
 #include <fstream>
+#include <regex>
+#include <iterator>
 
 #include <ogrsf_frmts.h>
 
@@ -105,6 +107,8 @@ class SpatialUnitData
     openfluid::core::UnitClassID_t ClassID;
 
     openfluid::core::UnitClassID_t ToClassID;
+
+    std::vector<openfluid::core::UnitClassID_t> FromClassID;
 
     openfluid::core::Attributes Attributes;
 
@@ -215,7 +219,8 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
     // =====================================================================
 
 
-    void importLayer(const std::string& UnitsClass, const std::string& Shapefile, const std::vector<AttrImportInfo>& AttrInfos)
+    void importLayer(const std::string& UnitsClass, const std::string& Shapefile,
+                     const std::vector<AttrImportInfo>& AttrInfos)
     {
       std::cout << "Importing file : " << Shapefile << std::endl;
 
@@ -259,7 +264,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
         OGRFeature* Feature = nullptr;
         Layer->ResetReading();
 
-        unsigned int UnitID = 1;
+        unsigned int IncUnitID = 1;
         while ((Feature = Layer->GetNextFeature()) != nullptr)
         {
           std::string OrigID(Feature->GetFieldAsString(IDFldIdx));
@@ -270,6 +275,39 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
           std::string OrigToID(Feature->GetFieldAsString(IDToFldIdx));
           if (OrigToID == "None")
             OrigToID.clear();
+
+
+          // polygon : [A-Za-z]+\#[0-9]+N[0-9]+
+          // line : [A-Za-z]+\#[0-9]+N[0-9]+-#[0-9]+N[0-9]+
+
+//          std::regex("[A-Za-z]+\#[0-9]+N[0-9]+");
+          unsigned int UnitID = IncUnitID;//
+          std::smatch MatchRes;
+
+          if (std::regex_match(OrigID, MatchRes, std::regex("[A-Za-z]+#[0-9]+N[0-9]+")))
+          {
+            std::vector<std::string> StrParts = openfluid::tools::splitString(OrigID,"#");
+            StrParts = openfluid::tools::splitString(StrParts[1],"N");
+
+            UnitID = std::stoi(StrParts[0])*100 + std::stoi(StrParts[1]);
+            // std::cout << "SU ID : "  << OrigID << " -> " << UnitID << std::endl;
+
+          }
+          else if (std::regex_match(OrigID, MatchRes, std::regex("[A-Za-z]+#[0-9]+N[0-9]+-[0-9]+N[0-9]+")))
+          {
+            /* // for numerical ID based on original ID
+            std::vector<std::string> StrParts = openfluid::tools::splitString(OrigID,"#");
+            StrParts = openfluid::tools::splitString(StrParts[1],"N-");
+
+            UnitID = std::stoi(StrParts[0])*std::pow(100,3) +
+                     std::stoi(StrParts[1])*std::pow(100,2) +
+                     std::stoi(StrParts[2])*100 +
+                     std::stoi(StrParts[3]);
+                     */
+            // std::cout << "LI ID : "  << OrigID << " -> " << UnitID << std::endl;
+          }
+          else
+            OPENFLUID_RaiseError("ID error ("+OrigID+") in "+UnitsClass+" shapefile");
 
           m_SpatialUnitsMap[OrigID].OrigID = OrigID;
           m_SpatialUnitsMap[OrigID].OrigToID = OrigToID;
@@ -290,7 +328,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
           }
 
 
-          UnitID++;
+          IncUnitID++;
         }
       }
       else
@@ -423,7 +461,6 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
 
 
      // Rebuild of map connections
-
       for (auto itEnt = m_SpatialUnitsMap.begin(); itEnt != m_SpatialUnitsMap.end(); ++itEnt)
       {
 
@@ -435,6 +472,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
           if (itToEnt != m_SpatialUnitsMap.end())
           {
             (*itToEnt).second.FromSpatialUnit = &(m_SpatialUnitsMap[(*itEnt).first]);
+            (*itToEnt).second.FromClassID.push_back((*itEnt).second.ClassID);
             (*itEnt).second.ToSpatialUnit = &(m_SpatialUnitsMap[(*itEnt).second.OrigToID]);
             (*itEnt).second.ToClassID = (*itToEnt).second.ClassID;
           }
@@ -457,6 +495,25 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
       }
 
 
+      // remove orphaned LI (no input and no output connection)
+      {
+        auto itEntClean = m_SpatialUnitsMap.begin();
+        while (itEntClean != m_SpatialUnitsMap.end())
+        {
+/*          std::cout << (*itEntClean).second.ClassID.first << "#" << (*itEntClean).second.ClassID.second << " ->" <<
+                       ((*itEntClean).second.ToSpatialUnit != nullptr) << "," << ((*itEntClean).second.FromSpatialUnit != nullptr) << std::endl;*/
+          if ((*itEntClean).second.ClassID.first == "LI" &&
+              (*itEntClean).second.ToSpatialUnit == nullptr && (*itEntClean).second.FromSpatialUnit == nullptr)
+          {
+//            std::cout << "Removing " << (*itEntClean).second.ClassID.first << "#" << (*itEntClean).second.ClassID.second << std::endl;
+            itEntClean = m_SpatialUnitsMap.erase(itEntClean);
+          }
+          else
+          {
+            ++itEntClean;
+          }
+        }
+      }
 
       // Creation of spatial units
       for (auto& Ent : m_SpatialUnitsMap)
@@ -491,11 +548,12 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
       }
 
 
+      openfluid::core::SpatialUnit* U;
+
+
       // Compute of process orders
 
-      openfluid::core::SpatialUnit* U;
       std::vector<openfluid::core::SpatialUnit*> Outlets;
-
 
       OPENFLUID_ALLUNITS_ORDERED_LOOP(U)
       {
@@ -622,7 +680,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
     openfluid::base::SchedulingRequest initializeRun()
     {
 
-      return DefaultDeltaT();
+      return Never();
     }
 
 
@@ -633,7 +691,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
     openfluid::base::SchedulingRequest runStep()
     {
 
-      return DefaultDeltaT();
+      return Never();
     }
 
 

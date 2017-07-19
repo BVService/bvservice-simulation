@@ -207,6 +207,10 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
       }
 
 
+      if (MaxRatio < 0.01)
+        return IncomingWaterVolume;
+
+
       double Length = 0.0;
       OPENFLUID_GetAttribute(U,"length",Length);
 
