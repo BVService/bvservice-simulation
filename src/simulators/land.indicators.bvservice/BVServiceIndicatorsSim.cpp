@@ -39,6 +39,7 @@ BEGIN_SIMULATOR_SIGNATURE("land.indicators.bvservice")
   DECLARE_REQUIRED_VARIABLE("uprunoffvolume","SU","","m3")
   DECLARE_REQUIRED_VARIABLE("runoffvolume","LI","outgoing runoff volume","m3")
   DECLARE_REQUIRED_VARIABLE("uprunoffvolume","LI","incoming runoff volume","m3")
+  DECLARE_REQUIRED_VARIABLE("infiltvolume","LI","","m3")
 
 
   DECLARE_PRODUCED_VARIABLE("upperarea","SU","Contributive upper area","m")
@@ -46,16 +47,19 @@ BEGIN_SIMULATOR_SIGNATURE("land.indicators.bvservice")
   DECLARE_PRODUCED_VARIABLE("infiltvolsum","SU","","m")
   DECLARE_PRODUCED_VARIABLE("runoffvoldelta","SU","","m3")
   DECLARE_PRODUCED_VARIABLE("runoffvolratio","SU","","")
-  DECLARE_PRODUCED_VARIABLE("infiltvolratiodown","SU","","m3")
+  DECLARE_PRODUCED_VARIABLE("infiltvolratio","SU","","")
+  DECLARE_PRODUCED_VARIABLE("infiltvolratiosum","SU","","")
   DECLARE_PRODUCED_VARIABLE("conndegree","SU","","")
   DECLARE_PRODUCED_VARIABLE("erosionrisk","SU","","m3")
+  DECLARE_PRODUCED_VARIABLE("runoffcontrib","SU","","m3")
 
   DECLARE_PRODUCED_VARIABLE("upperarea","LI","","m")
   DECLARE_PRODUCED_VARIABLE("runoffvoldelta","LI","","m3")
   DECLARE_PRODUCED_VARIABLE("runoffvolratio","LI","","")
   DECLARE_PRODUCED_VARIABLE("concdegree","LI","","")
-  DECLARE_PRODUCED_VARIABLE("infiltvolratiodown","LI","","m3")
+  DECLARE_PRODUCED_VARIABLE("infiltvolratio","LI","","")
   DECLARE_PRODUCED_VARIABLE("importancedegree","LI","degree of importance","")
+  DECLARE_PRODUCED_VARIABLE("interestdegree","LI","degree of potential interest","")
 
   DECLARE_PRODUCED_VARIABLE("upperarea","RS","","m")
 
@@ -100,6 +104,42 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
     // =====================================================================
     // =====================================================================
 
+
+    void normalizeVariable(const openfluid::core::UnitsClass_t& ClassName,
+                           const openfluid::core::VariableName_t& VarName)
+    {
+      openfluid::core::SpatialUnit* U;
+      double Max = std::numeric_limits<double>::min();
+      double Min = std::numeric_limits<double>::max();
+
+      OPENFLUID_UNITS_ORDERED_LOOP(ClassName,U)
+      {
+        double Val = OPENFLUID_GetLatestVariable(U,VarName).value()->asDoubleValue().get();
+
+        if (!std::isnan(Val))
+        {
+          Min = std::min(Min,Val);
+          Max = std::max(Max,Val);
+        }
+      }
+
+      // OPENFLUID_DisplayInfo("Variable " << VarName << " on " << ClassName << " : " << Min << " -> " << Max);
+
+      OPENFLUID_UNITS_ORDERED_LOOP(ClassName,U)
+      {
+        double Val = OPENFLUID_GetLatestVariable(U,VarName).value()->asDoubleValue().get();
+
+        if (!std::isnan(Val))
+        {
+          double NormVal = (Val - Min) / (Max - Min);
+          OPENFLUID_SetVariable(U,VarName,NormVal);
+        }
+      }
+    }
+
+
+    // =====================================================================
+    // =====================================================================
 
     std::string getXClassID(const openfluid::core::SpatialUnit* U)
     {
@@ -248,7 +288,7 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
 
       // prefixed depth-first search to process from root to leafs
 
-//      OPENFLUID_DisplayInfo("Infilt sum : entering unit " << U->getClass() << "#" << U->getID());
+      // OPENFLUID_DisplayInfo("Infilt sum : entering unit " << U->getClass() << "#" << U->getID());
 
       double  NewInfiltSum = InfiltSum;
 
@@ -291,6 +331,58 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
 
     }
 
+
+    // =====================================================================
+    // =====================================================================
+
+
+    void computeCumulatedInfilRatioFromNetworkRecursively(openfluid::core::SpatialUnit* U, double InfiltSum)
+    {
+
+      // prefixed depth-first search to process from root to leafs
+
+      // OPENFLUID_DisplayInfo("Infilt ratio sum : entering unit " << U->getClass() << "#" << U->getID());
+
+      double  NewInfiltSum = InfiltSum;
+
+      if (U->getClass() == "SU" || U->getClass() == "LI")
+      {
+        NewInfiltSum = NewInfiltSum + OPENFLUID_GetVariable(U,"infiltvolratio")->asDoubleValue();
+      }
+
+      if (U->getClass() == "SU")
+        OPENFLUID_AppendVariable(U,"infiltvolratiosum",NewInfiltSum);
+
+      std::set<openfluid::core::SpatialUnit*> UpperUnits;
+
+      openfluid::core::UnitsPtrList_t* TmpUpperList;
+      TmpUpperList = U->fromSpatialUnits("SU");
+      if (TmpUpperList != nullptr)
+
+      {
+        for (auto TmpU : *TmpUpperList)
+          UpperUnits.insert(TmpU);
+      }
+
+
+      TmpUpperList = U->fromSpatialUnits("LI");
+      if (TmpUpperList != nullptr)
+      {
+        for (auto TmpU : *TmpUpperList)
+          UpperUnits.insert(TmpU);
+      }
+
+
+      if (!UpperUnits.empty()) //if UpperUnits not empty, upstream Units are present
+      {
+        for(auto UpU : UpperUnits) // loop for each upstream unit
+        {
+
+          computeCumulatedInfilRatioFromNetworkRecursively(UpU,NewInfiltSum);
+        }
+      }
+
+    }
 
 
     // =====================================================================
@@ -343,12 +435,14 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
       {
         OPENFLUID_InitializeVariable(U,"bufferscount",(long)0);
         OPENFLUID_InitializeVariable(U,"infiltvolsum",0.0);
+        OPENFLUID_InitializeVariable(U,"infiltvolratiosum",0.0);
 
         OPENFLUID_InitializeVariable(U,"runoffvoldelta",0.0);
         OPENFLUID_InitializeVariable(U,"runoffvolratio",0.0);
-        OPENFLUID_InitializeVariable(U,"infiltvolratiodown",0.0);
+        OPENFLUID_InitializeVariable(U,"infiltvolratio",0.0);
         OPENFLUID_InitializeVariable(U,"conndegree",0.0);
         OPENFLUID_InitializeVariable(U,"erosionrisk",0.0);
+        OPENFLUID_InitializeVariable(U,"runoffcontrib",0.0);
       }
 
       OPENFLUID_UNITS_ORDERED_LOOP("LI",U)
@@ -357,7 +451,8 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
         OPENFLUID_InitializeVariable(U,"runoffvolratio",0.0);
         OPENFLUID_InitializeVariable(U,"concdegree",0.0);
         OPENFLUID_InitializeVariable(U,"importancedegree",0.0);
-        OPENFLUID_InitializeVariable(U,"infiltvolratiodown",0.0);
+        OPENFLUID_InitializeVariable(U,"interestdegree",0.0);
+        OPENFLUID_InitializeVariable(U,"infiltvolratio",0.0);
       }
 
       return DefaultDeltaT();
@@ -489,6 +584,7 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
           RatioVolume = DeltaVolume / UpRunoffVol;
 
         OPENFLUID_AppendVariable(U,"runoffvoldelta",DeltaVolume);
+        OPENFLUID_AppendVariable(U,"runoffcontrib",DeltaVolume);
         OPENFLUID_AppendVariable(U,"runoffvolratio",RatioVolume);
         OPENFLUID_AppendVariable(U,"erosionrisk",RunoffVol*Slope);
       }
@@ -520,52 +616,14 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
       }
 
 
-
-      // ============= SU downstream infiltrated volume and connectivity degree
-
-
-      OPENFLUID_UNITS_ORDERED_LOOP("SU",U)
-      {
-        openfluid::core::UnitsPtrList_t* TmpDownList;
-
-        TmpDownList = U->toSpatialUnits("SU");
-
-
-        double SUNegRatioSum = 0.0;
-        double LIRatioSum  = 0.0;
-
-        if (TmpDownList)
-        {
-          for (auto TmpU : *TmpDownList)
-          {
-            double RunoffVol = OPENFLUID_GetVariable(TmpU,"runoffvolratio")->asDoubleValue().get();
-            if (RunoffVol < 0.0)
-              SUNegRatioSum += RunoffVol;
-          }
-        }
-
-
-        TmpDownList = U->toSpatialUnits("LI");
-        if (TmpDownList)
-        {
-          for (auto TmpU : *TmpDownList)
-          {
-            double RunoffVol = OPENFLUID_GetVariable(TmpU,"runoffvolratio")->asDoubleValue().get();
-            LIRatioSum += RunoffVol;
-          }
-        }
-
-        OPENFLUID_AppendVariable(U,"infiltvolratiodown",SUNegRatioSum+LIRatioSum);
-        OPENFLUID_AppendVariable(U,"conndegree",1.0-SUNegRatioSum+LIRatioSum);
-      }
-
-
       // ============= LI downstream infiltrated volume and importance degree
 
+      static const std::list<std::string> Subparts = {"benches","grassbs","hedges"};
 
       OPENFLUID_UNITS_ORDERED_LOOP("LI",U)
       {
-        openfluid::core::UnitsPtrList_t* TmpDownList;
+        // Former method
+        /*openfluid::core::UnitsPtrList_t* TmpDownList;
 
         TmpDownList = U->toSpatialUnits("SU");
 
@@ -583,7 +641,6 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
           }
         }
 
-
         TmpDownList = U->toSpatialUnits("LI");
         if (TmpDownList)
         {
@@ -594,16 +651,113 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
           }
         }
 
-
         double InfiltVolRatioDown = SUNegRatioSum+LIRatioSum;
-        OPENFLUID_AppendVariable(U,"infiltvolratiodown",SUNegRatioSum+LIRatioSum);
+        OPENFLUID_AppendVariable(U,"infiltvolratio",SUNegRatioSum+LIRatioSum);
 
         double UpRunoffVol = OPENFLUID_GetVariable(U,"uprunoffvolume")->asDoubleValue().get();
         double RunoffVol = OPENFLUID_GetVariable(U,"runoffvolume")->asDoubleValue().get();
         OPENFLUID_AppendVariable(U,"importancedegree",UpRunoffVol-(RunoffVol*InfiltVolRatioDown));
+        */
+
+        double InfiltVol = OPENFLUID_GetVariable(U,"infiltvolume")->asDoubleValue().get();
+        double UpRunoffVol = OPENFLUID_GetVariable(U,"uprunoffvolume")->asDoubleValue().get();
+
+        if (openfluid::scientific::isVeryClose(UpRunoffVol,0.0))
+          OPENFLUID_AppendVariable(U,"infiltvolratio",0.0);
+        else
+          OPENFLUID_AppendVariable(U,"infiltvolratio",InfiltVol/UpRunoffVol);
+
+
+
+        bool Occupied = false;
+
+        for (auto LinearPart : Subparts)
+        {
+          double Ratio = 0.0;
+          OPENFLUID_GetAttribute(U,LinearPart+"ratio",Ratio);
+
+          if (Ratio > 0.0)
+            Occupied = true;
+        }
+
+        if (Occupied)
+        {
+          OPENFLUID_AppendVariable(U,"importancedegree",InfiltVol);
+          OPENFLUID_AppendVariable(U,"interestdegree",std::numeric_limits<double>::quiet_NaN());
+        }
+        else
+        {
+          OPENFLUID_AppendVariable(U,"importancedegree",std::numeric_limits<double>::quiet_NaN());
+          OPENFLUID_AppendVariable(U,"interestdegree",UpRunoffVol);
+        }
+      }
+
+
+      // ============= SU infiltration ratio
+
+      OPENFLUID_UNITS_ORDERED_LOOP("SU",U)
+      {
+        openfluid::core::UnitsPtrList_t* TmpUpList;
+
+        TmpUpList = U->fromSpatialUnits("SU");
+
+
+        double UpRunoffVol = 0.0;
+
+        if (TmpUpList)
+        {
+          for (auto TmpU : *TmpUpList)
+          {
+            double RunoffVol = OPENFLUID_GetVariable(TmpU,"runoffvolume")->asDoubleValue().get();
+            UpRunoffVol += RunoffVol;
+          }
+        }
+
+
+        TmpUpList = U->fromSpatialUnits("LI");
+        if (TmpUpList)
+        {
+          for (auto TmpU : *TmpUpList)
+          {
+            double RunoffVol = OPENFLUID_GetVariable(TmpU,"runoffvolume")->asDoubleValue().get();
+            UpRunoffVol += RunoffVol;
+          }
+        }
+
+
+
+        double InfiltVol = OPENFLUID_GetVariable(U,"infiltvolume")->asDoubleValue().get();
+
+        if (openfluid::scientific::isVeryClose(UpRunoffVol,0.0))
+          OPENFLUID_AppendVariable(U,"infiltvolratio",0.0);
+        else
+          OPENFLUID_AppendVariable(U,"infiltvolratio",InfiltVol/UpRunoffVol);
 
       }
 
+
+      // ============= SU downstream infiltrated volume and connectivity degree
+
+      OPENFLUID_UNITS_ORDERED_LOOP("RS",U)
+      {
+        computeCumulatedInfilRatioFromNetworkRecursively(U,0);
+      }
+
+      OPENFLUID_UNITS_ORDERED_LOOP("SU",U)
+      {
+        double InfiltVolRatioSum;
+        InfiltVolRatioSum = OPENFLUID_GetLatestVariable(U,"infiltvolratiosum").value()->asDoubleValue().get();
+        OPENFLUID_AppendVariable(U,"conndegree",InfiltVolRatioSum);
+      }
+
+
+      normalizeVariable("SU","conndegree");
+      normalizeVariable("SU","erosionrisk");
+      normalizeVariable("SU","runoffcontrib");
+
+      normalizeVariable("LI","importancedegree");
+      normalizeVariable("LI","interestdegree");
+      normalizeVariable("LI","concdegree");
 
       return DefaultDeltaT();
     }

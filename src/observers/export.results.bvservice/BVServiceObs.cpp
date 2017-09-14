@@ -168,9 +168,10 @@ class BVServiceObserver : public openfluid::ware::PluggableObserver
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"uprunoffvolume","uprunoffv"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"runoffvoldelta","runoffvd"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"runoffvolratio","runoffvr"),
-        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"infiltvolratiodown","infiltvrd"),
+        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"infiltvolratio","infiltvrd"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"conndegree","conndeg"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"erosionrisk","erosrisk"),
+        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"runoffcontrib","runoffctrb"),
         VarExportInfo(openfluid::core::Value::Type::INTEGER,"bufferscount","buffcount")
       };
 
@@ -181,9 +182,10 @@ class BVServiceObserver : public openfluid::ware::PluggableObserver
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"uprunoffvolume","uprunoffv"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"runoffvoldelta","runoffvd"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"runoffvolratio","runoffvr"),
-        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"infiltvolratiodown","infiltvrd"),
+        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"infiltvolratio","infiltvrd"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"concdegree","concdeg"),
         VarExportInfo(openfluid::core::Value::Type::DOUBLE,"importancedegree","impdeg"),
+        VarExportInfo(openfluid::core::Value::Type::DOUBLE,"interestdegree","intdeg")
       };
 
 
