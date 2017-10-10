@@ -342,16 +342,19 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
       // prefixed depth-first search to process from root to leafs
 
       // OPENFLUID_DisplayInfo("Infilt ratio sum : entering unit " << U->getClass() << "#" << U->getID());
+      //
+      // OPENFLUID_LogInfo(U->getClass() << "#" << U->getID());
+
 
       double  NewInfiltSum = InfiltSum;
+
+      if (U->getClass() == "SU")
+        OPENFLUID_AppendVariable(U,"infiltvolratiosum",NewInfiltSum);
 
       if (U->getClass() == "SU" || U->getClass() == "LI")
       {
         NewInfiltSum = NewInfiltSum + OPENFLUID_GetVariable(U,"infiltvolratio")->asDoubleValue();
       }
-
-      if (U->getClass() == "SU")
-        OPENFLUID_AppendVariable(U,"infiltvolratiosum",NewInfiltSum);
 
       std::set<openfluid::core::SpatialUnit*> UpperUnits;
 
@@ -743,10 +746,30 @@ class BVServiceIndicatorsSimulator : public openfluid::ware::PluggableSimulator
         computeCumulatedInfilRatioFromNetworkRecursively(U,0);
       }
 
+      // for units not connected to network - review method
+      OPENFLUID_UNITS_ORDERED_LOOP("LI",U)
+      {
+        bool IsLeaf = OPENFLUID_GetAttribute(U,"isoutlet")->asBooleanValue().get();
+        if (IsLeaf)
+          computeCumulatedInfilRatioFromNetworkRecursively(U,0);
+      }
+
       OPENFLUID_UNITS_ORDERED_LOOP("SU",U)
       {
-        double InfiltVolRatioSum;
+        double InfiltVolRatioSum = 0.0;
         InfiltVolRatioSum = OPENFLUID_GetLatestVariable(U,"infiltvolratiosum").value()->asDoubleValue().get();
+
+        /*openfluid::core::UnitsPtrList_t* TmpToList = nullptr;
+        TmpToList = U->toSpatialUnits("LI");
+        if (TmpToList)
+        {
+          for (auto TmpU : *TmpToList)
+          {
+            InfiltVolRatioSum += OPENFLUID_GetLatestVariable(TmpU,"infiltvolratiosum").value()->asDoubleValue().get();
+
+          }
+        }*/
+
         OPENFLUID_AppendVariable(U,"conndegree",InfiltVolRatioSum);
       }
 

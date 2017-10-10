@@ -220,7 +220,7 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
 
 
     void importLayer(const std::string& UnitsClass, const std::string& Shapefile,
-                     const std::vector<AttrImportInfo>& AttrInfos)
+                     const std::vector<AttrImportInfo>& AttrInfos, bool Optional = false)
     {
       std::cout << "Importing file : " << Shapefile << std::endl;
 
@@ -332,7 +332,10 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
         }
       }
       else
-        OPENFLUID_RaiseError("Cannot open "+UnitsClass+" shapefile " + Shapefile);
+      {
+        if (!Optional)
+          OPENFLUID_RaiseError("Cannot open "+UnitsClass+" shapefile " + Shapefile);
+      }
 
       OGRDataSource::DestroyDataSource(Source);
     }
@@ -420,8 +423,8 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
       if (m_LIshapefile.empty())
         OPENFLUID_RaiseError("LI shapefile path is empty");
 
-      if (m_LIshapefile.empty())
-        OPENFLUID_RaiseError("RS shapefile path is empty");
+/*      if (m_RSshapefile.empty())
+        OPENFLUID_RaiseError("RS shapefile path is empty");*/
 
 
       importLayer("SU",m_SUshapefile,
@@ -457,7 +460,8 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
                     AttrImportInfo(OFTReal,"ThalwegsL","thalwegslen"),
                     AttrImportInfo(OFTReal,"WaterCsL","watercslen"),
                     AttrImportInfo(OFTReal,"SurfToLen","surftolen")
-                  });
+                  },
+                  true);
 
 
      // Rebuild of map connections
@@ -535,6 +539,10 @@ class BVServiceImportSimulator : public openfluid::ware::PluggableSimulator
           }
         }
       }
+
+      // Workaround when there is no RS - not clean!
+      if (!OPENFLUID_IsUnitsClassExist("RS"))
+        OPENFLUID_AddUnit("RS",1,1);
 
 
       // Creation of connections

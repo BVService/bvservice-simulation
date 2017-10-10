@@ -17,3 +17,10 @@ ADD_TEST(NAME openfluid-DardaillonSmall
 ADD_TEST(NAME openfluid-DardaillonSmallFilteredLI
          COMMAND "${OpenFLUID_CMD_PROGRAM}" run "${TESTS_EXECS_PATH}/DardaillonSmallFilteredLI/IN" "${TESTS_EXECS_PATH}/DardaillonSmallFilteredLI/OUT"
                                                  ${OPENFLUID_RUN_OPTS})
+
+
+FOREACH(DATASET Dardaillon Doazit Ettendorf Bourville Bourville_ReducedThalwegs Bourville_AllThalwegs)
+  ADD_TEST(NAME openfluid-${DATASET}
+           COMMAND "${OpenFLUID_CMD_PROGRAM}" run "${TESTS_EXECS_PATH}/${DATASET}/IN" "${TESTS_EXECS_PATH}/${DATASET}/OUT"
+                                                   ${OPENFLUID_RUN_OPTS})
+ENDFOREACH()

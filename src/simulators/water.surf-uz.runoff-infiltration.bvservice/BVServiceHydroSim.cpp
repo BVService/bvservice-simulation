@@ -90,6 +90,7 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
                                                      {"hedges",58},  // like FOREST
                                                    };
 
+    const unsigned int m_DefaultCN = 93;
 
   public:
 
@@ -314,8 +315,11 @@ class BVServiceHydroSimulator : public openfluid::ware::PluggableSimulator
           m_CNofSU[U->getID()] = (*it).second;
         else
         {
-          std::string IDStr = openfluid::tools::convertValue(U->getID());
-          OPENFLUID_RaiseError("Land use code \"" + LandUseCode + "\" on SU#" + IDStr + " is not valid");
+          m_CNofSU[U->getID()] = m_DefaultCN;
+          OPENFLUID_LogAndDisplayWarning("CN value for SU#" << U->getID() <<
+                                         " set to default value (" << m_DefaultCN << ")");
+          /*std::string IDStr = openfluid::tools::convertValue(U->getID());
+          OPENFLUID_RaiseError("Land use code \"" + LandUseCode + "\" on SU#" + IDStr + " is not valid");*/
         }
       }
     }

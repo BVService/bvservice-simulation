@@ -56,7 +56,7 @@ class BVServiceObserver : public openfluid::ware::PluggableObserver
 
     BVServiceObserver() : PluggableObserver()
     {
-
+      std::setlocale(LC_NUMERIC, "C");
     }
 
     // =====================================================================
@@ -142,7 +142,8 @@ class BVServiceObserver : public openfluid::ware::PluggableObserver
         if (Info.VarType == openfluid::core::Value::Type::DOUBLE)
         {
           double Value = OPENFLUID_GetLatestVariable(U,Info.VarName).value()->asDoubleValue();
-          Feature->SetField(Info.FieldName.c_str(),Value);
+          if (!std::isnan(Value))
+            Feature->SetField(Info.FieldName.c_str(),Value);
         }
         else if (Info.VarType == openfluid::core::Value::Type::INTEGER)
         {
